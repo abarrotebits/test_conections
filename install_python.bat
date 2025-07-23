@@ -6,456 +6,132 @@ echo    INSTALADOR AUTOMATICO DE PYTHON
 echo ========================================
 echo.
 
-:: Verificar si se ejecuta como administrador
-net session >nul 2>&1
-if %errorlevel% neq 0 (
-    echo Este script requiere permisos de administrador.
+:: Verificar si Python ya está instalado
+python --version >nul 2>&1
+if %errorlevel% equ 0 (
+    echo Python ya está instalado en el sistema.
+    python --version
     echo.
-    echo Iniciando PowerShell como administrador...
-    echo.
-    
-    :: Crear script PowerShell temporal
-    set "PS_SCRIPT=%TEMP%\install_python_admin.ps1"
-    
-    echo # Script de instalación de Python con permisos de administrador > "%PS_SCRIPT%"
-    echo $ErrorActionPreference = 'Stop' >> "%PS_SCRIPT%"
-    echo. >> "%PS_SCRIPT%"
-    echo Write-Host "========================================" -ForegroundColor Green >> "%PS_SCRIPT%"
-    echo Write-Host "   INSTALADOR AUTOMATICO DE PYTHON" -ForegroundColor Green >> "%PS_SCRIPT%"
-    echo Write-Host "========================================" -ForegroundColor Green >> "%PS_SCRIPT%"
-    echo Write-Host "" >> "%PS_SCRIPT%"
-    echo. >> "%PS_SCRIPT%"
-    echo # Verificar si Python ya está instalado >> "%PS_SCRIPT%"
-    echo try { >> "%PS_SCRIPT%"
-    echo     $pythonVersion = python --version 2^>^&1 >> "%PS_SCRIPT%"
-    echo     if ($LASTEXITCODE -eq 0) { >> "%PS_SCRIPT%"
-    echo         Write-Host "Python ya está instalado en el sistema." -ForegroundColor Yellow >> "%PS_SCRIPT%"
-    echo         Write-Host $pythonVersion -ForegroundColor Green >> "%PS_SCRIPT%"
-    echo         Write-Host "" >> "%PS_SCRIPT%"
-    echo         Write-Host "Verificando configuración de PATH..." -ForegroundColor Cyan >> "%PS_SCRIPT%"
-    echo         Write-Host "" >> "%PS_SCRIPT%"
-    echo. >> "%PS_SCRIPT%"
-    echo         # Verificar pip >> "%PS_SCRIPT%"
-    echo         try { >> "%PS_SCRIPT%"
-    echo             $pipVersion = pip --version 2^>^&1 >> "%PS_SCRIPT%"
-    echo             if ($LASTEXITCODE -eq 0) { >> "%PS_SCRIPT%"
-    echo                 Write-Host "✓ pip está disponible." -ForegroundColor Green >> "%PS_SCRIPT%"
-    echo                 Write-Host $pipVersion -ForegroundColor Green >> "%PS_SCRIPT%"
-    echo             } else { >> "%PS_SCRIPT%"
-    echo                 Write-Host "⚠ pip no está disponible. Intentando instalar..." -ForegroundColor Yellow >> "%PS_SCRIPT%"
-    echo                 python -m ensurepip --upgrade >> "%PS_SCRIPT%"
-    echo             } >> "%PS_SCRIPT%"
-    echo         } catch { >> "%PS_SCRIPT%"
-    echo             Write-Host "Error verificando pip: $_" -ForegroundColor Red >> "%PS_SCRIPT%"
-    echo         } >> "%PS_SCRIPT%"
-    echo. >> "%PS_SCRIPT%"
-    echo         Write-Host "========================================" -ForegroundColor Green >> "%PS_SCRIPT%"
-    echo         Write-Host "   INSTALACION COMPLETADA EXITOSAMENTE" -ForegroundColor Green >> "%PS_SCRIPT%"
-    echo         Write-Host "========================================" -ForegroundColor Green >> "%PS_SCRIPT%"
-    echo         Write-Host "" >> "%PS_SCRIPT%"
-    echo         Write-Host "Python está listo para usar." -ForegroundColor Green >> "%PS_SCRIPT%"
-    echo         Write-Host "" >> "%PS_SCRIPT%"
-    echo. >> "%PS_SCRIPT%"
-    echo         # Instalar dependencias si existe requirements.txt >> "%PS_SCRIPT%"
-    echo         if (Test-Path "requirements.txt") { >> "%PS_SCRIPT%"
-    echo             Write-Host "Instalando dependencias del proyecto..." -ForegroundColor Cyan >> "%PS_SCRIPT%"
-    echo             pip install -r requirements.txt >> "%PS_SCRIPT%"
-    echo             Write-Host "" >> "%PS_SCRIPT%"
-    echo             Write-Host "Dependencias instaladas correctamente." -ForegroundColor Green >> "%PS_SCRIPT%"
-    echo         } >> "%PS_SCRIPT%"
-    echo. >> "%PS_SCRIPT%"
-    echo         Write-Host "Presione cualquier tecla para salir..." -ForegroundColor Yellow >> "%PS_SCRIPT%"
-    echo         $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown") >> "%PS_SCRIPT%"
-    echo         exit 0 >> "%PS_SCRIPT%"
-    echo     } >> "%PS_SCRIPT%"
-    echo } catch { >> "%PS_SCRIPT%"
-    echo     Write-Host "Python no está instalado. Procediendo con la instalación..." -ForegroundColor Yellow >> "%PS_SCRIPT%"
-    echo } >> "%PS_SCRIPT%"
-    echo. >> "%PS_SCRIPT%"
-    echo Write-Host "Descargando Python 3.11.8 (última versión estable)..." -ForegroundColor Cyan >> "%PS_SCRIPT%"
-    echo Write-Host "" >> "%PS_SCRIPT%"
-    echo. >> "%PS_SCRIPT%"
-    echo # Crear directorio temporal para descarga >> "%PS_SCRIPT%"
-    echo $tempDir = Join-Path $env:TEMP "python_installer" >> "%PS_SCRIPT%"
-    echo if (-not (Test-Path $tempDir)) { >> "%PS_SCRIPT%"
-    echo     New-Item -ItemType Directory -Path $tempDir -Force | Out-Null >> "%PS_SCRIPT%"
-    echo } >> "%PS_SCRIPT%"
-    echo Set-Location $tempDir >> "%PS_SCRIPT%"
-    echo. >> "%PS_SCRIPT%"
-    echo # Descargar Python >> "%PS_SCRIPT%"
-    echo try { >> "%PS_SCRIPT%"
-    echo     [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 >> "%PS_SCRIPT%"
-    echo     $url = "https://www.python.org/ftp/python/3.11.8/python-3.11.8-amd64.exe" >> "%PS_SCRIPT%"
-    echo     $output = "python-installer.exe" >> "%PS_SCRIPT%"
-    echo     Invoke-WebRequest -Uri $url -OutFile $output >> "%PS_SCRIPT%"
-    echo     Write-Host "Descarga completada." -ForegroundColor Green >> "%PS_SCRIPT%"
-    echo } catch { >> "%PS_SCRIPT%"
-    echo     Write-Host "ERROR: No se pudo descargar Python." -ForegroundColor Red >> "%PS_SCRIPT%"
-    echo     Write-Host "Verifique su conexión a internet e intente nuevamente." -ForegroundColor Red >> "%PS_SCRIPT%"
-    echo     Write-Host "Presione cualquier tecla para salir..." -ForegroundColor Yellow >> "%PS_SCRIPT%"
-    echo     $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown") >> "%PS_SCRIPT%"
-    echo     exit 1 >> "%PS_SCRIPT%"
-    echo } >> "%PS_SCRIPT%"
-    echo. >> "%PS_SCRIPT%"
-    echo Write-Host "Instalando Python..." -ForegroundColor Cyan >> "%PS_SCRIPT%"
-    echo Write-Host "" >> "%PS_SCRIPT%"
-    echo. >> "%PS_SCRIPT%"
-    echo # Instalar Python >> "%PS_SCRIPT%"
-    echo try { >> "%PS_SCRIPT%"
-    echo     $installArgs = @( >> "%PS_SCRIPT%"
-    echo         "/quiet", >> "%PS_SCRIPT%"
-    echo         "InstallAllUsers=1", >> "%PS_SCRIPT%"
-    echo         "PrependPath=1", >> "%PS_SCRIPT%"
-    echo         "Include_test=0", >> "%PS_SCRIPT%"
-    echo         "Include_pip=1", >> "%PS_SCRIPT%"
-    echo         "Include_doc=0", >> "%PS_SCRIPT%"
-    echo         "Include_dev=0" >> "%PS_SCRIPT%"
-    echo     ) >> "%PS_SCRIPT%"
-    echo     Start-Process -FilePath "python-installer.exe" -ArgumentList $installArgs -Wait -NoNewWindow >> "%PS_SCRIPT%"
-    echo     if ($LASTEXITCODE -ne 0) { throw "Instalación falló con código: $LASTEXITCODE" } >> "%PS_SCRIPT%"
-    echo     Write-Host "Python se ha instalado correctamente." -ForegroundColor Green >> "%PS_SCRIPT%"
-    echo } catch { >> "%PS_SCRIPT%"
-    echo     Write-Host "ERROR: La instalación de Python falló." -ForegroundColor Red >> "%PS_SCRIPT%"
-    echo     Write-Host $_.Exception.Message -ForegroundColor Red >> "%PS_SCRIPT%"
-    echo     Write-Host "Presione cualquier tecla para salir..." -ForegroundColor Yellow >> "%PS_SCRIPT%"
-    echo     $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown") >> "%PS_SCRIPT%"
-    echo     exit 1 >> "%PS_SCRIPT%"
-    echo } >> "%PS_SCRIPT%"
-    echo. >> "%PS_SCRIPT%"
-    echo # Limpiar archivos temporales >> "%PS_SCRIPT%"
-    echo if (Test-Path "python-installer.exe") { >> "%PS_SCRIPT%"
-    echo     Remove-Item "python-installer.exe" -Force >> "%PS_SCRIPT%"
-    echo } >> "%PS_SCRIPT%"
-    echo Set-Location "%~dp0" >> "%PS_SCRIPT%"
-    echo. >> "%PS_SCRIPT%"
-    echo Write-Host "Verificando configuración de PATH..." -ForegroundColor Cyan >> "%PS_SCRIPT%"
-    echo Write-Host "" >> "%PS_SCRIPT%"
-    echo. >> "%PS_SCRIPT%"
-    echo # Verificar si Python está en el PATH >> "%PS_SCRIPT%"
-    echo try { >> "%PS_SCRIPT%"
-    echo     $pythonVersion = python --version 2^>^&1 >> "%PS_SCRIPT%"
-    echo     if ($LASTEXITCODE -eq 0) { >> "%PS_SCRIPT%"
-    echo         Write-Host "✓ Python está correctamente configurado en el PATH." -ForegroundColor Green >> "%PS_SCRIPT%"
-    echo         Write-Host $pythonVersion -ForegroundColor Green >> "%PS_SCRIPT%"
-    echo         Write-Host "" >> "%PS_SCRIPT%"
-    echo. >> "%PS_SCRIPT%"
-    echo         # Verificar pip >> "%PS_SCRIPT%"
-    echo         try { >> "%PS_SCRIPT%"
-    echo             $pipVersion = pip --version 2^>^&1 >> "%PS_SCRIPT%"
-    echo             if ($LASTEXITCODE -eq 0) { >> "%PS_SCRIPT%"
-    echo                 Write-Host "✓ pip está disponible." -ForegroundColor Green >> "%PS_SCRIPT%"
-    echo                 Write-Host $pipVersion -ForegroundColor Green >> "%PS_SCRIPT%"
-    echo             } else { >> "%PS_SCRIPT%"
-    echo                 Write-Host "⚠ pip no está disponible. Intentando instalar..." -ForegroundColor Yellow >> "%PS_SCRIPT%"
-    echo                 python -m ensurepip --upgrade >> "%PS_SCRIPT%"
-    echo             } >> "%PS_SCRIPT%"
-    echo         } catch { >> "%PS_SCRIPT%"
-    echo             Write-Host "Error verificando pip: $_" -ForegroundColor Red >> "%PS_SCRIPT%"
-    echo         } >> "%PS_SCRIPT%"
-    echo. >> "%PS_SCRIPT%"
-    echo         Write-Host "========================================" -ForegroundColor Green >> "%PS_SCRIPT%"
-    echo         Write-Host "   INSTALACION COMPLETADA EXITOSAMENTE" -ForegroundColor Green >> "%PS_SCRIPT%"
-    echo         Write-Host "========================================" -ForegroundColor Green >> "%PS_SCRIPT%"
-    echo         Write-Host "" >> "%PS_SCRIPT%"
-    echo         Write-Host "Python está listo para usar." -ForegroundColor Green >> "%PS_SCRIPT%"
-    echo         Write-Host "" >> "%PS_SCRIPT%"
-    echo. >> "%PS_SCRIPT%"
-    echo         # Instalar dependencias si existe requirements.txt >> "%PS_SCRIPT%"
-    echo         if (Test-Path "requirements.txt") { >> "%PS_SCRIPT%"
-    echo             Write-Host "Instalando dependencias del proyecto..." -ForegroundColor Cyan >> "%PS_SCRIPT%"
-    echo             pip install -r requirements.txt >> "%PS_SCRIPT%"
-    echo             Write-Host "" >> "%PS_SCRIPT%"
-    echo             Write-Host "Dependencias instaladas correctamente." -ForegroundColor Green >> "%PS_SCRIPT%"
-    echo         } >> "%PS_SCRIPT%"
-    echo. >> "%PS_SCRIPT%"
-    echo     } else { >> "%PS_SCRIPT%"
-    echo         Write-Host "⚠ Python no está en el PATH. Configurando manualmente..." -ForegroundColor Yellow >> "%PS_SCRIPT%"
-    echo         Write-Host "" >> "%PS_SCRIPT%"
-    echo. >> "%PS_SCRIPT%"
-    echo         # Intentar encontrar Python en ubicaciones comunes >> "%PS_SCRIPT%"
-    echo         $pythonPaths = @( >> "%PS_SCRIPT%"
-    echo             "C:\Python311", >> "%PS_SCRIPT%"
-    echo             "C:\Python310", >> "%PS_SCRIPT%"
-    echo             "C:\Python39", >> "%PS_SCRIPT%"
-    echo             "$env:LOCALAPPDATA\Programs\Python\Python311" >> "%PS_SCRIPT%"
-    echo         ) >> "%PS_SCRIPT%"
-    echo. >> "%PS_SCRIPT%"
-    echo         $foundPath = $null >> "%PS_SCRIPT%"
-    echo         foreach ($path in $pythonPaths) { >> "%PS_SCRIPT%"
-    echo             if (Test-Path "$path\python.exe") { >> "%PS_SCRIPT%"
-    echo                 $foundPath = $path >> "%PS_SCRIPT%"
-    echo                 break >> "%PS_SCRIPT%"
-    echo             } >> "%PS_SCRIPT%"
-    echo         } >> "%PS_SCRIPT%"
-    echo. >> "%PS_SCRIPT%"
-    echo         if ($foundPath) { >> "%PS_SCRIPT%"
-    echo             Write-Host "Encontrado Python en: $foundPath" -ForegroundColor Green >> "%PS_SCRIPT%"
-    echo             Write-Host "" >> "%PS_SCRIPT%"
-    echo             Write-Host "Agregando Python al PATH del sistema..." -ForegroundColor Cyan >> "%PS_SCRIPT%"
-    echo. >> "%PS_SCRIPT%"
-    echo             # Agregar al PATH del sistema >> "%PS_SCRIPT%"
-    echo             $currentPath = [Environment]::GetEnvironmentVariable('PATH', 'Machine') >> "%PS_SCRIPT%"
-    echo             if ($currentPath -notlike "*$foundPath*") { >> "%PS_SCRIPT%"
-    echo                 $newPath = $currentPath + ";$foundPath;$foundPath\Scripts" >> "%PS_SCRIPT%"
-    echo                 [Environment]::SetEnvironmentVariable('PATH', $newPath, 'Machine') >> "%PS_SCRIPT%"
-    echo                 Write-Host "PATH actualizado correctamente." -ForegroundColor Green >> "%PS_SCRIPT%"
-    echo             } else { >> "%PS_SCRIPT%"
-    echo                 Write-Host "Python ya está en el PATH del sistema." -ForegroundColor Yellow >> "%PS_SCRIPT%"
-    echo             } >> "%PS_SCRIPT%"
-    echo. >> "%PS_SCRIPT%"
-    echo             Write-Host "✓ Python ha sido agregado al PATH del sistema." -ForegroundColor Green >> "%PS_SCRIPT%"
-    echo             Write-Host "" >> "%PS_SCRIPT%"
-    echo             Write-Host "NOTA: Es posible que necesite reiniciar la terminal o el sistema" -ForegroundColor Yellow >> "%PS_SCRIPT%"
-    echo             Write-Host "para que los cambios en el PATH surtan efecto." -ForegroundColor Yellow >> "%PS_SCRIPT%"
-    echo             Write-Host "" >> "%PS_SCRIPT%"
-    echo         } else { >> "%PS_SCRIPT%"
-    echo             Write-Host "ERROR: No se pudo encontrar Python instalado en el sistema." -ForegroundColor Red >> "%PS_SCRIPT%"
-    echo             Write-Host "Por favor, instale Python manualmente desde https://www.python.org/" -ForegroundColor Red >> "%PS_SCRIPT%"
-    echo             Write-Host "" >> "%PS_SCRIPT%"
-    echo         } >> "%PS_SCRIPT%"
-    echo     } >> "%PS_SCRIPT%"
-    echo } catch { >> "%PS_SCRIPT%"
-    echo     Write-Host "Error verificando Python: $_" -ForegroundColor Red >> "%PS_SCRIPT%"
-    echo } >> "%PS_SCRIPT%"
-    echo. >> "%PS_SCRIPT%"
-    echo Write-Host "Presione cualquier tecla para salir..." -ForegroundColor Yellow >> "%PS_SCRIPT%"
-    echo $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown") >> "%PS_SCRIPT%"
-    
-    :: Ejecutar PowerShell como administrador
-    powershell -ExecutionPolicy Bypass -File "%PS_SCRIPT%"
-    
-    :: Limpiar script temporal
-    del "%PS_SCRIPT%" >nul 2>&1
-    
-    exit /b 0
+    goto :check_path
 )
 
-:: Si llegamos aquí, ya tenemos permisos de administrador
-echo Verificando permisos de administrador...
-net session >nul 2>&1
-if %errorlevel% equ 0 (
-    echo ✓ Ejecutando con permisos de administrador.
-    echo.
-) else (
-    echo ERROR: No se pudieron obtener permisos de administrador.
+:: Crear directorio temporal para descarga
+if not exist "%TEMP%\python_installer" mkdir "%TEMP%\python_installer"
+cd /d "%TEMP%\python_installer"
+
+echo Descargando Python 3.11.8 (última versión estable)...
+echo.
+
+:: Descargar Python usando PowerShell
+powershell -Command "& {[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -Uri 'https://www.python.org/ftp/python/3.11.8/python-3.11.8-amd64.exe' -OutFile 'python-installer.exe'}"
+
+if not exist "python-installer.exe" (
+    echo ERROR: No se pudo descargar Python.
+    echo Verifique su conexión a internet e intente nuevamente.
     pause
     exit /b 1
 )
 
-:: Si llegamos aquí, ya tenemos permisos de administrador
-:: Crear y ejecutar script PowerShell con toda la lógica de instalación
-set "PS_SCRIPT=%TEMP%\install_python_admin.ps1"
+echo.
+echo Instalando Python...
+echo.
 
-echo # Script de instalación de Python con permisos de administrador > "%PS_SCRIPT%"
-echo $ErrorActionPreference = 'Stop' >> "%PS_SCRIPT%"
-echo. >> "%PS_SCRIPT%"
-echo Write-Host "========================================" -ForegroundColor Green >> "%PS_SCRIPT%"
-echo Write-Host "   INSTALADOR AUTOMATICO DE PYTHON" -ForegroundColor Green >> "%PS_SCRIPT%"
-echo Write-Host "========================================" -ForegroundColor Green >> "%PS_SCRIPT%"
-echo Write-Host "" >> "%PS_SCRIPT%"
-echo. >> "%PS_SCRIPT%"
-echo # Verificar si Python ya está instalado >> "%PS_SCRIPT%"
-echo try { >> "%PS_SCRIPT%"
-echo     $pythonVersion = python --version 2^>^&1 >> "%PS_SCRIPT%"
-echo     if ($LASTEXITCODE -eq 0) { >> "%PS_SCRIPT%"
-echo         Write-Host "Python ya está instalado en el sistema." -ForegroundColor Yellow >> "%PS_SCRIPT%"
-echo         Write-Host $pythonVersion -ForegroundColor Green >> "%PS_SCRIPT%"
-echo         Write-Host "" >> "%PS_SCRIPT%"
-echo         Write-Host "Verificando configuración de PATH..." -ForegroundColor Cyan >> "%PS_SCRIPT%"
-echo         Write-Host "" >> "%PS_SCRIPT%"
-echo. >> "%PS_SCRIPT%"
-echo         # Verificar pip >> "%PS_SCRIPT%"
-echo         try { >> "%PS_SCRIPT%"
-echo             $pipVersion = pip --version 2^>^&1 >> "%PS_SCRIPT%"
-echo             if ($LASTEXITCODE -eq 0) { >> "%PS_SCRIPT%"
-echo                 Write-Host "✓ pip está disponible." -ForegroundColor Green >> "%PS_SCRIPT%"
-echo                 Write-Host $pipVersion -ForegroundColor Green >> "%PS_SCRIPT%"
-echo             } else { >> "%PS_SCRIPT%"
-echo                 Write-Host "⚠ pip no está disponible. Intentando instalar..." -ForegroundColor Yellow >> "%PS_SCRIPT%"
-echo                 python -m ensurepip --upgrade >> "%PS_SCRIPT%"
-echo             } >> "%PS_SCRIPT%"
-echo         } catch { >> "%PS_SCRIPT%"
-echo             Write-Host "Error verificando pip: $_" -ForegroundColor Red >> "%PS_SCRIPT%"
-echo         } >> "%PS_SCRIPT%"
-echo. >> "%PS_SCRIPT%"
-echo         Write-Host "========================================" -ForegroundColor Green >> "%PS_SCRIPT%"
-echo         Write-Host "   INSTALACION COMPLETADA EXITOSAMENTE" -ForegroundColor Green >> "%PS_SCRIPT%"
-echo         Write-Host "========================================" -ForegroundColor Green >> "%PS_SCRIPT%"
-echo         Write-Host "" >> "%PS_SCRIPT%"
-echo         Write-Host "Python está listo para usar." -ForegroundColor Green >> "%PS_SCRIPT%"
-echo         Write-Host "" >> "%PS_SCRIPT%"
-echo. >> "%PS_SCRIPT%"
-echo         # Instalar dependencias si existe requirements.txt >> "%PS_SCRIPT%"
-echo         if (Test-Path "requirements.txt") { >> "%PS_SCRIPT%"
-echo             Write-Host "Instalando dependencias del proyecto..." -ForegroundColor Cyan >> "%PS_SCRIPT%"
-echo             pip install -r requirements.txt >> "%PS_SCRIPT%"
-echo             Write-Host "" >> "%PS_SCRIPT%"
-echo             Write-Host "Dependencias instaladas correctamente." -ForegroundColor Green >> "%PS_SCRIPT%"
-echo         } >> "%PS_SCRIPT%"
-echo. >> "%PS_SCRIPT%"
-echo         Write-Host "Presione cualquier tecla para salir..." -ForegroundColor Yellow >> "%PS_SCRIPT%"
-echo         $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown") >> "%PS_SCRIPT%"
-echo         exit 0 >> "%PS_SCRIPT%"
-echo     } >> "%PS_SCRIPT%"
-echo } catch { >> "%PS_SCRIPT%"
-echo     Write-Host "Python no está instalado. Procediendo con la instalación..." -ForegroundColor Yellow >> "%PS_SCRIPT%"
-echo } >> "%PS_SCRIPT%"
-echo. >> "%PS_SCRIPT%"
-echo Write-Host "Descargando Python 3.11.8 (última versión estable)..." -ForegroundColor Cyan >> "%PS_SCRIPT%"
-echo Write-Host "" >> "%PS_SCRIPT%"
-echo. >> "%PS_SCRIPT%"
-echo # Crear directorio temporal para descarga >> "%PS_SCRIPT%"
-echo $tempDir = Join-Path $env:TEMP "python_installer" >> "%PS_SCRIPT%"
-echo if (-not (Test-Path $tempDir)) { >> "%PS_SCRIPT%"
-echo     New-Item -ItemType Directory -Path $tempDir -Force | Out-Null >> "%PS_SCRIPT%"
-echo } >> "%PS_SCRIPT%"
-echo Set-Location $tempDir >> "%PS_SCRIPT%"
-echo. >> "%PS_SCRIPT%"
-echo # Descargar Python >> "%PS_SCRIPT%"
-echo try { >> "%PS_SCRIPT%"
-echo     [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 >> "%PS_SCRIPT%"
-echo     $url = "https://www.python.org/ftp/python/3.11.8/python-3.11.8-amd64.exe" >> "%PS_SCRIPT%"
-echo     $output = "python-installer.exe" >> "%PS_SCRIPT%"
-echo     Invoke-WebRequest -Uri $url -OutFile $output >> "%PS_SCRIPT%"
-echo     Write-Host "Descarga completada." -ForegroundColor Green >> "%PS_SCRIPT%"
-echo } catch { >> "%PS_SCRIPT%"
-echo     Write-Host "ERROR: No se pudo descargar Python." -ForegroundColor Red >> "%PS_SCRIPT%"
-echo     Write-Host "Verifique su conexión a internet e intente nuevamente." -ForegroundColor Red >> "%PS_SCRIPT%"
-echo     Write-Host "Presione cualquier tecla para salir..." -ForegroundColor Yellow >> "%PS_SCRIPT%"
-echo     $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown") >> "%PS_SCRIPT%"
-echo     exit 1 >> "%PS_SCRIPT%"
-echo } >> "%PS_SCRIPT%"
-echo. >> "%PS_SCRIPT%"
-echo Write-Host "Instalando Python..." -ForegroundColor Cyan >> "%PS_SCRIPT%"
-echo Write-Host "" >> "%PS_SCRIPT%"
-echo. >> "%PS_SCRIPT%"
-echo # Instalar Python >> "%PS_SCRIPT%"
-echo try { >> "%PS_SCRIPT%"
-echo     $installArgs = @( >> "%PS_SCRIPT%"
-echo         "/quiet", >> "%PS_SCRIPT%"
-echo         "InstallAllUsers=1", >> "%PS_SCRIPT%"
-echo         "PrependPath=1", >> "%PS_SCRIPT%"
-echo         "Include_test=0", >> "%PS_SCRIPT%"
-echo         "Include_pip=1", >> "%PS_SCRIPT%"
-echo         "Include_doc=0", >> "%PS_SCRIPT%"
-echo         "Include_dev=0" >> "%PS_SCRIPT%"
-echo     ) >> "%PS_SCRIPT%"
-echo     Start-Process -FilePath "python-installer.exe" -ArgumentList $installArgs -Wait -NoNewWindow >> "%PS_SCRIPT%"
-echo     if ($LASTEXITCODE -ne 0) { throw "Instalación falló con código: $LASTEXITCODE" } >> "%PS_SCRIPT%"
-echo     Write-Host "Python se ha instalado correctamente." -ForegroundColor Green >> "%PS_SCRIPT%"
-echo } catch { >> "%PS_SCRIPT%"
-echo     Write-Host "ERROR: La instalación de Python falló." -ForegroundColor Red >> "%PS_SCRIPT%"
-echo     Write-Host $_.Exception.Message -ForegroundColor Red >> "%PS_SCRIPT%"
-echo     Write-Host "Presione cualquier tecla para salir..." -ForegroundColor Yellow >> "%PS_SCRIPT%"
-echo     $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown") >> "%PS_SCRIPT%"
-echo     exit 1 >> "%PS_SCRIPT%"
-echo } >> "%PS_SCRIPT%"
-echo. >> "%PS_SCRIPT%"
-echo # Limpiar archivos temporales >> "%PS_SCRIPT%"
-echo if (Test-Path "python-installer.exe") { >> "%PS_SCRIPT%"
-echo     Remove-Item "python-installer.exe" -Force >> "%PS_SCRIPT%"
-echo } >> "%PS_SCRIPT%"
-echo Set-Location "%~dp0" >> "%PS_SCRIPT%"
-echo. >> "%PS_SCRIPT%"
-echo Write-Host "Verificando configuración de PATH..." -ForegroundColor Cyan >> "%PS_SCRIPT%"
-echo Write-Host "" >> "%PS_SCRIPT%"
-echo. >> "%PS_SCRIPT%"
-echo # Verificar si Python está en el PATH >> "%PS_SCRIPT%"
-echo try { >> "%PS_SCRIPT%"
-echo     $pythonVersion = python --version 2^>^&1 >> "%PS_SCRIPT%"
-echo     if ($LASTEXITCODE -eq 0) { >> "%PS_SCRIPT%"
-echo         Write-Host "✓ Python está correctamente configurado en el PATH." -ForegroundColor Green >> "%PS_SCRIPT%"
-echo         Write-Host $pythonVersion -ForegroundColor Green >> "%PS_SCRIPT%"
-echo         Write-Host "" >> "%PS_SCRIPT%"
-echo. >> "%PS_SCRIPT%"
-echo         # Verificar pip >> "%PS_SCRIPT%"
-echo         try { >> "%PS_SCRIPT%"
-echo             $pipVersion = pip --version 2^>^&1 >> "%PS_SCRIPT%"
-echo             if ($LASTEXITCODE -eq 0) { >> "%PS_SCRIPT%"
-echo                 Write-Host "✓ pip está disponible." -ForegroundColor Green >> "%PS_SCRIPT%"
-echo                 Write-Host $pipVersion -ForegroundColor Green >> "%PS_SCRIPT%"
-echo             } else { >> "%PS_SCRIPT%"
-echo                 Write-Host "⚠ pip no está disponible. Intentando instalar..." -ForegroundColor Yellow >> "%PS_SCRIPT%"
-echo                 python -m ensurepip --upgrade >> "%PS_SCRIPT%"
-echo             } >> "%PS_SCRIPT%"
-echo         } catch { >> "%PS_SCRIPT%"
-echo             Write-Host "Error verificando pip: $_" -ForegroundColor Red >> "%PS_SCRIPT%"
-echo         } >> "%PS_SCRIPT%"
-echo. >> "%PS_SCRIPT%"
-echo         Write-Host "========================================" -ForegroundColor Green >> "%PS_SCRIPT%"
-echo         Write-Host "   INSTALACION COMPLETADA EXITOSAMENTE" -ForegroundColor Green >> "%PS_SCRIPT%"
-echo         Write-Host "========================================" -ForegroundColor Green >> "%PS_SCRIPT%"
-echo         Write-Host "" >> "%PS_SCRIPT%"
-echo         Write-Host "Python está listo para usar." -ForegroundColor Green >> "%PS_SCRIPT%"
-echo         Write-Host "" >> "%PS_SCRIPT%"
-echo. >> "%PS_SCRIPT%"
-echo         # Instalar dependencias si existe requirements.txt >> "%PS_SCRIPT%"
-echo         if (Test-Path "requirements.txt") { >> "%PS_SCRIPT%"
-echo             Write-Host "Instalando dependencias del proyecto..." -ForegroundColor Cyan >> "%PS_SCRIPT%"
-echo             pip install -r requirements.txt >> "%PS_SCRIPT%"
-echo             Write-Host "" >> "%PS_SCRIPT%"
-echo             Write-Host "Dependencias instaladas correctamente." -ForegroundColor Green >> "%PS_SCRIPT%"
-echo         } >> "%PS_SCRIPT%"
-echo. >> "%PS_SCRIPT%"
-echo     } else { >> "%PS_SCRIPT%"
-echo         Write-Host "⚠ Python no está en el PATH. Configurando manualmente..." -ForegroundColor Yellow >> "%PS_SCRIPT%"
-echo         Write-Host "" >> "%PS_SCRIPT%"
-echo. >> "%PS_SCRIPT%"
-echo         # Intentar encontrar Python en ubicaciones comunes >> "%PS_SCRIPT%"
-echo         $pythonPaths = @( >> "%PS_SCRIPT%"
-echo             "C:\Python311", >> "%PS_SCRIPT%"
-echo             "C:\Python310", >> "%PS_SCRIPT%"
-echo             "C:\Python39", >> "%PS_SCRIPT%"
-echo             "$env:LOCALAPPDATA\Programs\Python\Python311" >> "%PS_SCRIPT%"
-echo         ) >> "%PS_SCRIPT%"
-echo. >> "%PS_SCRIPT%"
-echo         $foundPath = $null >> "%PS_SCRIPT%"
-echo         foreach ($path in $pythonPaths) { >> "%PS_SCRIPT%"
-echo             if (Test-Path "$path\python.exe") { >> "%PS_SCRIPT%"
-echo                 $foundPath = $path >> "%PS_SCRIPT%"
-echo                 break >> "%PS_SCRIPT%"
-echo             } >> "%PS_SCRIPT%"
-echo         } >> "%PS_SCRIPT%"
-echo. >> "%PS_SCRIPT%"
-echo         if ($foundPath) { >> "%PS_SCRIPT%"
-echo             Write-Host "Encontrado Python en: $foundPath" -ForegroundColor Green >> "%PS_SCRIPT%"
-echo             Write-Host "" >> "%PS_SCRIPT%"
-echo             Write-Host "Agregando Python al PATH del sistema..." -ForegroundColor Cyan >> "%PS_SCRIPT%"
-echo. >> "%PS_SCRIPT%"
-echo             # Agregar al PATH del sistema >> "%PS_SCRIPT%"
-echo             $currentPath = [Environment]::GetEnvironmentVariable('PATH', 'Machine') >> "%PS_SCRIPT%"
-echo             if ($currentPath -notlike "*$foundPath*") { >> "%PS_SCRIPT%"
-echo                 $newPath = $currentPath + ";$foundPath;$foundPath\Scripts" >> "%PS_SCRIPT%"
-echo                 [Environment]::SetEnvironmentVariable('PATH', $newPath, 'Machine') >> "%PS_SCRIPT%"
-echo                 Write-Host "PATH actualizado correctamente." -ForegroundColor Green >> "%PS_SCRIPT%"
-echo             } else { >> "%PS_SCRIPT%"
-echo                 Write-Host "Python ya está en el PATH del sistema." -ForegroundColor Yellow >> "%PS_SCRIPT%"
-echo             } >> "%PS_SCRIPT%"
-echo. >> "%PS_SCRIPT%"
-echo             Write-Host "✓ Python ha sido agregado al PATH del sistema." -ForegroundColor Green >> "%PS_SCRIPT%"
-echo             Write-Host "" >> "%PS_SCRIPT%"
-echo             Write-Host "NOTA: Es posible que necesite reiniciar la terminal o el sistema" -ForegroundColor Yellow >> "%PS_SCRIPT%"
-echo             Write-Host "para que los cambios en el PATH surtan efecto." -ForegroundColor Yellow >> "%PS_SCRIPT%"
-echo             Write-Host "" >> "%PS_SCRIPT%"
-echo         } else { >> "%PS_SCRIPT%"
-echo             Write-Host "ERROR: No se pudo encontrar Python instalado en el sistema." -ForegroundColor Red >> "%PS_SCRIPT%"
-echo             Write-Host "Por favor, instale Python manualmente desde https://www.python.org/" -ForegroundColor Red >> "%PS_SCRIPT%"
-echo             Write-Host "" >> "%PS_SCRIPT%"
-echo         } >> "%PS_SCRIPT%"
-echo     } >> "%PS_SCRIPT%"
-echo } catch { >> "%PS_SCRIPT%"
-echo     Write-Host "Error verificando Python: $_" -ForegroundColor Red >> "%PS_SCRIPT%"
-echo } >> "%PS_SCRIPT%"
-echo. >> "%PS_SCRIPT%"
-echo Write-Host "Presione cualquier tecla para salir..." -ForegroundColor Yellow >> "%PS_SCRIPT%"
-echo $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown") >> "%PS_SCRIPT%"
+:: Instalar Python con las opciones necesarias
+python-installer.exe /quiet InstallAllUsers=1 PrependPath=1 Include_test=0 Include_pip=1 Include_doc=0 Include_dev=0
 
-:: Ejecutar PowerShell como administrador
-powershell -ExecutionPolicy Bypass -File "%PS_SCRIPT%"
-
-:: Limpiar script temporal
-del "%PS_SCRIPT%" >nul 2>&1
+if %errorlevel% neq 0 (
+    echo ERROR: La instalación de Python falló.
+    pause
+    exit /b 1
+)
 
 echo.
-echo Instalación completada.
-pause 
+echo Python se ha instalado correctamente.
+echo.
+
+:: Limpiar archivos temporales
+del "python-installer.exe" >nul 2>&1
+cd /d "%~dp0"
+
+:check_path
+echo Verificando configuración de PATH...
+echo.
+
+:: Verificar si Python está en el PATH
+python --version >nul 2>&1
+if %errorlevel% equ 0 (
+    echo ✓ Python está correctamente configurado en el PATH.
+    python --version
+    echo.
+
+    :: Verificar pip
+    pip --version >nul 2>&1
+    if %errorlevel% equ 0 (
+        echo ✓ pip está disponible.
+        pip --version
+    ) else (
+        echo ⚠ pip no está disponible. Intentando instalar...
+        python -m ensurepip --upgrade
+    )
+
+    echo.
+    echo ========================================
+    echo    INSTALACION COMPLETADA EXITOSAMENTE
+    echo ========================================
+    echo.
+    echo Python está listo para usar.
+    echo.
+
+    :: Instalar dependencias si existe requirements.txt
+    if exist "requirements.txt" (
+        echo Instalando dependencias del proyecto...
+        pip install -r requirements.txt
+        echo.
+        echo Dependencias instaladas correctamente.
+    )
+
+) else (
+    echo ⚠ Python no está en el PATH. Configurando manualmente...
+    echo.
+
+    :: Intentar encontrar Python en ubicaciones comunes
+    set "PYTHON_FOUND="
+
+    if exist "C:\Python311\python.exe" (
+        set "PYTHON_PATH=C:\Python311"
+        set "PYTHON_FOUND=1"
+    ) else if exist "C:\Python310\python.exe" (
+        set "PYTHON_PATH=C:\Python310"
+        set "PYTHON_FOUND=1"
+    ) else if exist "C:\Python39\python.exe" (
+        set "PYTHON_PATH=C:\Python39"
+        set "PYTHON_FOUND=1"
+    ) else if exist "C:\Users\%USERNAME%\AppData\Local\Programs\Python\Python311\python.exe" (
+        set "PYTHON_PATH=C:\Users\%USERNAME%\AppData\Local\Programs\Python\Python311"
+        set "PYTHON_FOUND=1"
+    )
+
+    if defined PYTHON_FOUND (
+        echo Encontrado Python en: !PYTHON_PATH!
+        echo.
+        echo Agregando Python al PATH del sistema...
+
+        :: Agregar al PATH del sistema usando PowerShell
+        powershell -Command "& {$currentPath = [Environment]::GetEnvironmentVariable('PATH', 'Machine'); if ($currentPath -notlike '*!PYTHON_PATH!*') { $newPath = $currentPath + ';!PYTHON_PATH!;!PYTHON_PATH!\Scripts'; [Environment]::SetEnvironmentVariable('PATH', $newPath, 'Machine'); Write-Host 'PATH actualizado correctamente.'} else { Write-Host 'Python ya está en el PATH del sistema.'}}"
+
+        echo.
+        echo ✓ Python ha sido agregado al PATH del sistema.
+        echo.
+        echo NOTA: Es posible que necesite reiniciar la terminal o el sistema
+        echo para que los cambios en el PATH surtan efecto.
+        echo.
+    ) else (
+        echo ERROR: No se pudo encontrar Python instalado en el sistema.
+        echo Por favor, instale Python manualmente desde https://www.python.org/
+        echo.
+    )
+)
+
+echo.
+echo Presione cualquier tecla para salir...
+pause >nul
