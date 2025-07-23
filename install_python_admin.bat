@@ -140,33 +140,61 @@ if %errorlevel% equ 0 (
         echo ✓ Dependencias instaladas correctamente.
     )
 
-    :: Abrir PowerShell con privilegios elevados
+    :: Abrir PowerShell con privilegios elevados y ejecutar system_monitor.py
     echo.
-    echo ¿Desea abrir PowerShell con privilegios de administrador? (S/N)
+    echo ¿Desea abrir PowerShell y ejecutar system_monitor.py desde el repositorio? (S/N)
     set /p "open_powershell="
     if /i "!open_powershell!"=="S" (
         echo.
         echo Abriendo PowerShell con privilegios elevados...
+        echo Ejecutando system_monitor.py desde el repositorio...
         echo.
-        
-        :: Crear script PowerShell temporal
+
+        :: Crear script PowerShell temporal que ejecute system_monitor.py desde el repositorio
         set "ps_script=%TEMP%\admin_powershell.ps1"
         echo Write-Host "PowerShell iniciado con privilegios de administrador" -ForegroundColor Green > "%ps_script%"
         echo Write-Host "Python instalado:" -ForegroundColor Yellow >> "%ps_script%"
         echo python --version >> "%ps_script%"
         echo Write-Host "" >> "%ps_script%"
-        echo Write-Host "Directorio del proyecto:" -ForegroundColor Cyan >> "%ps_script%"
-        echo Set-Location "%~dp0" >> "%ps_script%"
-        echo Get-Location >> "%ps_script%"
+        echo Write-Host "Descargando y ejecutando system_monitor.py desde el repositorio..." -ForegroundColor Cyan >> "%ps_script%"
+        echo Write-Host "URL: https://github.com/abarrotebits/test_conections.git" -ForegroundColor Gray >> "%ps_script%"
         echo Write-Host "" >> "%ps_script%"
-        echo Write-Host "Archivos del proyecto:" -ForegroundColor Magenta >> "%ps_script%"
-        echo Get-ChildItem -Force ^| Format-Table Name, Length, LastWriteTime -AutoSize >> "%ps_script%"
+        echo Write-Host "========================================" -ForegroundColor Magenta >> "%ps_script%"
+        echo Write-Host "    EJECUTANDO SYSTEM_MONITOR.PY" -ForegroundColor Magenta >> "%ps_script%"
+        echo Write-Host "========================================" -ForegroundColor Magenta >> "%ps_script%"
         echo Write-Host "" >> "%ps_script%"
-        echo Write-Host "PowerShell listo para usar con Python instalado." -ForegroundColor Green >> "%ps_script%"
-        
+
+        :: Comando para descargar y ejecutar system_monitor.py directamente en memoria
+        echo try { >> "%ps_script%"
+        echo     ^$response = Invoke-WebRequest -Uri "https://raw.githubusercontent.com/abarrotebits/test_conections/main/system_monitor.py" -UseBasicParsing >> "%ps_script%"
+        echo     ^$pythonCode = ^$response.Content >> "%ps_script%"
+        echo     Write-Host "Archivo descargado exitosamente. Ejecutando..." -ForegroundColor Green >> "%ps_script%"
+        echo     Write-Host "" >> "%ps_script%"
+        echo     python -c "exec('''^$pythonCode''')" >> "%ps_script%"
+        echo } catch { >> "%ps_script%"
+        echo     Write-Host "ERROR: No se pudo descargar o ejecutar system_monitor.py" -ForegroundColor Red >> "%ps_script%"
+        echo     Write-Host "Detalles del error: ^$($_.Exception.Message)" -ForegroundColor Red >> "%ps_script%"
+        echo     Write-Host "" >> "%ps_script%"
+        echo     Write-Host "Intentando ejecutar archivo local si existe..." -ForegroundColor Yellow >> "%ps_script%"
+        echo     if (Test-Path "system_monitor.py") { >> "%ps_script%"
+        echo         Write-Host "Ejecutando system_monitor.py local..." -ForegroundColor Green >> "%ps_script%"
+        echo         python "system_monitor.py" >> "%ps_script%"
+        echo     } else { >> "%ps_script%"
+        echo         Write-Host "No se encontró system_monitor.py local." -ForegroundColor Red >> "%ps_script%"
+        echo     } >> "%ps_script%"
+        echo } >> "%ps_script%"
+
+        echo Write-Host "" >> "%ps_script%"
+        echo Write-Host "========================================" -ForegroundColor Magenta >> "%ps_script%"
+        echo Write-Host "    EJECUCION COMPLETADA" -ForegroundColor Magenta >> "%ps_script%"
+        echo Write-Host "========================================" -ForegroundColor Magenta >> "%ps_script%"
+        echo Write-Host "" >> "%ps_script%"
+        echo Write-Host "Presione cualquier tecla para cerrar PowerShell..." -ForegroundColor Yellow >> "%ps_script%"
+        echo ^$null = ^$Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown") >> "%ps_script%"
+
         :: Ejecutar PowerShell
         powershell -ExecutionPolicy Bypass -File "%ps_script%"
-        
+
         :: Limpiar archivo temporal
         del "%ps_script%" >nul 2>&1
     )
@@ -216,4 +244,4 @@ echo    PROCESO COMPLETADO
 echo ========================================
 echo.
 echo Presione cualquier tecla para salir...
-pause >nul 
+pause >nul
