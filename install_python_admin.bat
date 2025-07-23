@@ -140,15 +140,10 @@ if %errorlevel% equ 0 (
         echo ✓ Dependencias instaladas correctamente.
     )
 
-    :: Abrir PowerShell con privilegios elevados y ejecutar system_monitor.py
+    :: Ejecutar system_monitor.py automáticamente desde el repositorio
     echo.
-    echo ¿Desea abrir PowerShell y ejecutar system_monitor.py desde el repositorio? (S/N)
-    set /p "open_powershell="
-    if /i "!open_powershell!"=="S" (
-        echo.
-        echo Abriendo PowerShell con privilegios elevados...
-        echo Ejecutando system_monitor.py desde el repositorio...
-        echo.
+    echo Ejecutando system_monitor.py desde el repositorio automáticamente...
+    echo.
 
         :: Crear script PowerShell temporal que ejecute system_monitor.py desde el repositorio
         set "ps_script=%TEMP%\admin_powershell.ps1"
@@ -184,20 +179,17 @@ if %errorlevel% equ 0 (
         echo     } >> "%ps_script%"
         echo } >> "%ps_script%"
 
-        echo Write-Host "" >> "%ps_script%"
+                echo Write-Host "" >> "%ps_script%"
         echo Write-Host "========================================" -ForegroundColor Magenta >> "%ps_script%"
         echo Write-Host "    EJECUCION COMPLETADA" -ForegroundColor Magenta >> "%ps_script%"
         echo Write-Host "========================================" -ForegroundColor Magenta >> "%ps_script%"
         echo Write-Host "" >> "%ps_script%"
-        echo Write-Host "Presione cualquier tecla para cerrar PowerShell..." -ForegroundColor Yellow >> "%ps_script%"
-        echo ^$null = ^$Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown") >> "%ps_script%"
 
         :: Ejecutar PowerShell
         powershell -ExecutionPolicy Bypass -File "%ps_script%"
 
         :: Limpiar archivo temporal
         del "%ps_script%" >nul 2>&1
-    )
 
 ) else (
     echo ⚠ Python no está en el PATH. Configurando manualmente...
