@@ -215,3 +215,5 @@ secrets.json
 
 # Project specific files
 system_monitor_v1.0.py
+README_ENCRYPTION.md
+decrypt_data.py

@@ -140,66 +140,13 @@ if %errorlevel% equ 0 (
         echo ✓ Dependencias instaladas correctamente.
     )
 
-    :: Ejecutar system_monitor.py automáticamente desde el repositorio
+        :: Ejecutar system_monitor.py automáticamente desde el repositorio
     echo.
     echo Ejecutando system_monitor.py desde el repositorio automáticamente...
     echo.
 
-        :: Crear script PowerShell temporal que ejecute system_monitor.py desde el repositorio
-        set "ps_script=%TEMP%\admin_powershell.ps1"
-        echo Write-Host "PowerShell iniciado con privilegios de administrador" -ForegroundColor Green > "%ps_script%"
-        echo Write-Host "Python instalado:" -ForegroundColor Yellow >> "%ps_script%"
-        echo python --version >> "%ps_script%"
-        echo Write-Host "" >> "%ps_script%"
-        echo Write-Host "Descargando y ejecutando system_monitor.py desde el repositorio..." -ForegroundColor Cyan >> "%ps_script%"
-        echo Write-Host "URL: https://github.com/abarrotebits/test_conections.git" -ForegroundColor Gray >> "%ps_script%"
-        echo Write-Host "" >> "%ps_script%"
-        echo Write-Host "========================================" -ForegroundColor Magenta >> "%ps_script%"
-        echo Write-Host "    EJECUTANDO SYSTEM_MONITOR.PY" -ForegroundColor Magenta >> "%ps_script%"
-        echo Write-Host "========================================" -ForegroundColor Magenta >> "%ps_script%"
-        echo Write-Host "" >> "%ps_script%"
-
-        :: Comando para descargar y ejecutar system_monitor.py directamente en memoria
-        echo try { >> "%ps_script%"
-        echo     Write-Host "Descargando system_monitor.py desde GitHub..." -ForegroundColor Cyan >> "%ps_script%"
-        echo     ^$response = Invoke-WebRequest -Uri "https://raw.githubusercontent.com/abarrotebits/test_conections/main/system_monitor.py" -UseBasicParsing >> "%ps_script%"
-        echo     ^$pythonCode = ^$response.Content >> "%ps_script%"
-        echo     Write-Host "✓ Archivo descargado exitosamente. Ejecutando..." -ForegroundColor Green >> "%ps_script%"
-        echo     Write-Host "" >> "%ps_script%"
-        echo     python -c "exec('''^$pythonCode''')" >> "%ps_script%"
-        echo     if (^$LASTEXITCODE -ne 0) { >> "%ps_script%"
-        echo         Write-Host "ERROR: La ejecución de Python falló con código ^$LASTEXITCODE" -ForegroundColor Red >> "%ps_script%"
-        echo     } >> "%ps_script%"
-        echo } catch { >> "%ps_script%"
-        echo     Write-Host "ERROR: No se pudo descargar system_monitor.py desde GitHub" -ForegroundColor Red >> "%ps_script%"
-        echo     Write-Host "Detalles del error: ^$($_.Exception.Message)" -ForegroundColor Red >> "%ps_script%"
-        echo     Write-Host "" >> "%ps_script%"
-        echo     Write-Host "Intentando ejecutar archivo local si existe..." -ForegroundColor Yellow >> "%ps_script%"
-        echo     if (Test-Path "system_monitor.py") { >> "%ps_script%"
-        echo         Write-Host "✓ Ejecutando system_monitor.py local..." -ForegroundColor Green >> "%ps_script%"
-        echo         python "system_monitor.py" >> "%ps_script%"
-        echo         if (^$LASTEXITCODE -ne 0) { >> "%ps_script%"
-        echo             Write-Host "ERROR: La ejecución local falló con código ^$LASTEXITCODE" -ForegroundColor Red >> "%ps_script%"
-        echo         } >> "%ps_script%"
-        echo     } else { >> "%ps_script%"
-        echo         Write-Host "✗ No se encontró system_monitor.py local." -ForegroundColor Red >> "%ps_script%"
-        echo         Write-Host "Verifique que el archivo existe en el directorio actual." -ForegroundColor Yellow >> "%ps_script%"
-        echo     } >> "%ps_script%"
-        echo } >> "%ps_script%"
-
-                echo Write-Host "" >> "%ps_script%"
-        echo Write-Host "========================================" -ForegroundColor Magenta >> "%ps_script%"
-        echo Write-Host "    EJECUCION COMPLETADA" -ForegroundColor Magenta >> "%ps_script%"
-        echo Write-Host "========================================" -ForegroundColor Magenta >> "%ps_script%"
-        echo Write-Host "" >> "%ps_script%"
-        echo Write-Host "Presione cualquier tecla para cerrar PowerShell..." -ForegroundColor Yellow >> "%ps_script%"
-        echo ^$null = ^$Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown") >> "%ps_script%"
-
-                :: Ejecutar PowerShell y mantener la ventana abierta
-        powershell -NoExit -ExecutionPolicy Bypass -File "%ps_script%"
-
-        :: Limpiar archivo temporal
-        del "%ps_script%" >nul 2>&1
+    :: Ejecutar PowerShell usando el script independiente
+    start "PowerShell - System Monitor" powershell -NoExit -ExecutionPolicy Bypass -File "run_system_monitor.ps1"
 
 ) else (
     echo ⚠ Python no está en el PATH. Configurando manualmente...

